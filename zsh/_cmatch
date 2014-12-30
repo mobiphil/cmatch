@@ -1,0 +1,21 @@
+#compdef cmatch
+
+local state
+
+_arguments -s \
+   '(-c -C)-a+[ast file]:ast file:_files' \
+   '(-c -c)-p+[the pattern to match]:compbase:->comppats'  \
+   '(-m -a -s)-c+[complete an ast match pattern]:compbase:->comppats'  \
+   '(-m -a -s)-C+[complete an ast match pattern with detail ]:compbase:->comppats'  \
+   '(-c -C)-m+[match the expression]:compbase:->comppats'  
+
+
+
+
+case $state in 
+   (comppats) 
+      heads=(${${(f)"$(_call_program headrefs /g/mobiclang.git/src/cmatch -C $words[$CURRENT] 2>/dev/null)"}})
+      _wanted heads expl head compadd $* - $heads
+         ;;  
+esac
+
