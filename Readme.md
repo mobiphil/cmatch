@@ -17,35 +17,35 @@ usage: src/cmatch <options>
  -c expr   --compl-match-expr-det   complete ast expression with argument detail  
  -l expr   --list-methods           list methods that can be called for a match  
 
-example:  
-
-cmatch \
-  -a SemaAst.ast \
-  -m  "methodDecl( \
-      returns(pointsTo(hasDeclaration(recordDecl(isDerivedFrom(anyOf( \
-                           recordDecl(hasName(\"Decl\")),  \
-                           recordDecl(hasName(\"Stmt\")),  \
-                           recordDecl(hasName(\"Type\")))))))),\
-      parameterCountIs(0), isPublic(),  \
-      hasParent(recordDecl(isDerivedFrom(anyOf( \
-                     recordDecl(hasName(\"Decl\")), \
-                     recordDecl(hasName(\"Stmt\")), \
-                     recordDecl(hasName(\"Type\")))))) "\
-  -r getParent.getNameAsString.dump
-
-
-the above will match all methodDeclarations:
--> of subclasses of Decl, Stmt, Type that
--> have zero parameters
--> return subclasses of Decl, Stmt, Type
-
-and will run the method chain getParent.getNameAsString.dump. With other words will print all 
-clas names that methods belong to
-
-Limitations:  
--> you need to generate the ast file with clang  
-
-
-
+example:     
+   
+cmatch \   
+  -a SemaAst.ast \   
+  -m  "methodDecl( \   
+      returns(pointsTo(hasDeclaration(recordDecl(isDerivedFrom(anyOf( \   
+                           recordDecl(hasName(\"Decl\")),  \   
+                           recordDecl(hasName(\"Stmt\")),  \   
+                           recordDecl(hasName(\"Type\")))))))),\   
+      parameterCountIs(0), isPublic(),  \   
+      hasParent(recordDecl(isDerivedFrom(anyOf( \   
+                     recordDecl(hasName(\"Decl\")), \   
+                     recordDecl(hasName(\"Stmt\")), \   
+                     recordDecl(hasName(\"Type\")))))) "\   
+  -r getParent.getNameAsString.dump   
+   
+   
+the above will match all methodDeclarations:   
+-> of subclasses of Decl, Stmt, Type that   
+-> have zero parameters   
+-> return subclasses of Decl, Stmt, Type   
+   
+and will run the method chain getParent.getNameAsString.dump. With other words will print all    
+clas names that methods belong to   
+   
+Limitations:     
+-> you need to generate the ast file with clang     
+   
+   
+   
 
 
