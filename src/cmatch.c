@@ -1,5 +1,8 @@
-#include "clang/Config/config.h"
-#include "clang-c/Index.h"
+//#include "clang/Config/config.h"
+//#include "clang-c/Index.h"
+#include "clang/Tooling/CommonOptionsParser.h"
+#include "clang/Tooling/Tooling.h"
+
 #include "IndexExt.h"
 #include "clang-c/CXCompilationDatabase.h"
 #include "clang-c/BuildSystem.h"
