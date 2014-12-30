@@ -1,8 +1,5 @@
-//#include "clang/Config/config.h"
-//#include "clang-c/Index.h"
-#include "clang/Tooling/CommonOptionsParser.h"
-#include "clang/Tooling/Tooling.h"
-
+#include "clang/Config/config.h"
+#include "clang-c/Index.h"
 #include "IndexExt.h"
 #include "clang-c/CXCompilationDatabase.h"
 #include "clang-c/BuildSystem.h"
@@ -295,7 +292,10 @@ int main(int argc, char *const*argv) {
       }
       else if(hasSrcFile) {
          if(argsConsumed < argc && strcmp(argv[argsConsumed], "--" )  == 0) {         
-            argsConsumed ++;
+            /* on my ubuntu 14 there is a bug 
+            * getopt_long aparently swaps the last argument before "--" and "--" itself
+            */
+            argsConsumed +=2;
             clang_parseTranslationUnit2(Idx, srcFile,
                   argv + argsConsumed,
                   argc - argsConsumed, 0,0,
@@ -317,7 +317,7 @@ int main(int argc, char *const*argv) {
 
       if(!hasSelector)
          strcpy(selector, "dump");
-      clang_matchAst(TU, (void*)0, pattern, &matchCallback, (void*)selector);
+      return clang_matchAst(TU, (void*)0, pattern, &matchCallback, (void*)selector);
    }
    if(list && hasPattern) {
       return listMethods(pattern);

@@ -206,15 +206,30 @@ int AstNodeMethodRunner::listMatcherMethods(const char *expr, MatcherMethodsCall
 void AstNodeMethodRunner::initMethodsMaps()
 {
    /* record base class vector */
-#define DECL(DERIVED, BASE) baseClasses[cls_##DERIVED##Decl]  = cls_##BASE;
+#ifdef DDDEBUG
+#define DECL(DERIVED, BASE) baseClasses[cls_##DERIVED##Decl]  = cls_##BASE; \
+   cout << "adding base: " << #DERIVED << ":" #BASE << ":" << cls_##DERIVED##Decl << ":" << cls_##BASE << endl;
 #include "clang/AST/DeclNodes.inc"
 #undef DECL
-#define STMT(DERIVED, BASE) baseClasses[cls_##DERIVED]  = cls_##BASE;
+#define STMT(DERIVED, BASE) baseClasses[cls_##DERIVED]  = cls_##BASE; \
+   cout << "adding base: " << #DERIVED << ":" #BASE << ":" << cls_##DERIVED << ":" << cls_##BASE << endl;
 #include "clang/AST/StmtNodes.inc"
 #undef STMT
-#define TYPE(DERIVED, BASE) baseClasses[cls_##DERIVED##Type]  = cls_##BASE;
+#define TYPE(DERIVED, BASE) baseClasses[cls_##DERIVED##Type]  = cls_##BASE; \
+   cout << "adding base: " << #DERIVED << ":" #BASE << ":" << cls_##DERIVED##Type << ":" << cls_##BASE << endl;
 #include "clang/AST/TypeNodes.def"
 #undef TYPE
+#else
+#define DECL(DERIVED, BASE) baseClasses[cls_##DERIVED##Decl]  = cls_##BASE; 
+#include "clang/AST/DeclNodes.inc"
+#undef DECL
+#define STMT(DERIVED, BASE) baseClasses[cls_##DERIVED]  = cls_##BASE; 
+#include "clang/AST/StmtNodes.inc"
+#undef STMT
+#define TYPE(DERIVED, BASE) baseClasses[cls_##DERIVED##Type]  = cls_##BASE; 
+#include "clang/AST/TypeNodes.def"
+#undef TYPE
+#endif
 
    baseClasses[cls_none]  = cls_none;
    baseClasses[cls_void]  = cls_none;
@@ -227,13 +242,13 @@ void AstNodeMethodRunner::initMethodsMaps()
 
    /* create class name to id map */
    classNameMap["DeclDecl"] = cls_Decl;
-#define DECL(DERIVED, BASE) classNameMap[#DERIVED]  = cls_##DERIVED##Decl;
+#define DECL(DERIVED, BASE) classNameMap[#DERIVED "Decl"]  = cls_##DERIVED##Decl;
 #include "clang/AST/DeclNodes.inc"
    classNameMap["StmtStmt"] = cls_Stmt;
 #define STMT(DERIVED, BASE)  classNameMap[#DERIVED] = cls_##DERIVED;
 #include "clang/AST/StmtNodes.inc"
    classNameMap["TypeType"] = cls_Type;
-#define TYPE(DERIVED, BASE)  classNameMap[#DERIVED] = cls_##DERIVED##Type;
+#define TYPE(DERIVED, BASE)  classNameMap[#DERIVED "Type"] = cls_##DERIVED##Type;
 #include "clang/AST/TypeNodes.def"
 
    /* create method name map */
@@ -278,30 +293,37 @@ void AstNodeMethodRunner::initMethodsMaps()
 #include "PodMethods.inc"
 #undef METHOD
 
-#if 0
+#ifdef DDDEBUG
    cout << "methodNameMap: " << endl;
    for( auto it : methodNameMap ) {
-      cout << it.first << ": " << it.second << endl;
+      cout << "method: " <<  it.first << ": " << it.second << endl;
    }
    cout << "methodmap: " << endl;
    for( auto it : methodMap ) {
-      cout << it.first << ": " << it.second << endl;
+      cout << "methodId: " << it.first << ": " << it.second << endl;
    }
    cout << "classmap: " << endl;
    for( auto it : classNameMap ) {
-      cout << it.first << ": " << it.second << endl;
+      cout << "class: " << it.first << ": " << it.second << endl;
    }
    cout << "base classes: " << endl;
    for( int id = cls_none; id < cls_last; id++)
    {
-      cout << "id: " << id << ", base: " << baseClasses[id] << endl; 
+      cout << "baseclass: id: " << id << ", base: " << baseClasses[id] << endl; 
    }
+#endif
+
+#define METHOD(kind, member, rettype) cout << "meth: " << kind##_##member << ":" << #kind << ":" << #member << endl;
+#include "DeclClassMethods.inc"
+#include "StmtClassMethods.inc"
+#include "TypeClassMethods.inc"
+#include "PodMethods.inc"
+#undef METHOD
 
    for( int id = cls_none; id < cls_last; id++)
    {
       //checkBaseClassConsistency(id);
    }
-#endif
 
 }
 AstNodeMethodRunner::AstNodeMethodRunner(){
@@ -488,12 +510,13 @@ struct CollectBoundNodes : MatchFinder::MatchCallback {
             BI != BE; ++BI) {
          /* probably this sausage could be simplified by calling 
           * astnodekind.asstringref() */
-         const char *className = 0;
+         string className ;
          if(not ast_type_traits::ASTNodeKind::getMostDerivedCommonAncestor(
                   BI->second.getNodeKind(), 
                  ast_type_traits::ASTNodeKind::getFromNodeKind<Decl>() ).isNone()) {
             const Decl *d = BI->second.get<Decl>();
             className = d->getDeclKindName() ;
+            className += "Decl";
          }
          else if(not ast_type_traits::ASTNodeKind::getMostDerivedCommonAncestor(
                   BI->second.getNodeKind(), 
@@ -507,7 +530,7 @@ struct CollectBoundNodes : MatchFinder::MatchCallback {
             const Type *t = BI->second.get<Type>();
             className = t->getTypeClassName() ;
          } 
-         unsigned cid = AstNodeMethodRunner::singleton()->classNameToId(className);
+         unsigned cid = AstNodeMethodRunner::singleton()->classNameToId(className.c_str());
          if( cid == 0) {
             const AstNode node = {0, 0, "class not found in internal map" };
             callback(node, userData);

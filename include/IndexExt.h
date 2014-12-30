@@ -67,7 +67,7 @@ typedef struct {
 } AstNode;
 
 /**
- * \brief equivalent of clang::ASTUnit class */
+ * \brief equivalent of clang::ASTUnit class 
  */
 typedef void* AstUnit ;
 
@@ -76,7 +76,7 @@ typedef int (*AstMatchCallback)(const AstNode node, void *userData);
  * \brief matches the expr and named value map against ast
  */
 CINDEX_LINKAGE
-int clang_matchAst(AstUnit astUnit, NamedValueMap namedValueMap, 
+int clang_matchAst(CXTranslationUnit astUnit, NamedValueMap namedValueMap, 
       const char *expr, AstMatchCallback, void *userData );
 
 
