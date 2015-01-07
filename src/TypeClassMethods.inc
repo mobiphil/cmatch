@@ -1,10 +1,28 @@
 
-
-METHOD(Type, dump, void)
-METHOD(Type, getTypeClassName, char)
-METHOD(Type, getTypeClass, int)
-
+METHOD(DecltypeType, getUnderlyingExpr, Stmt)
+METHOD(DependentSizedArrayType, getSizeExpr, Stmt)
+METHOD(DependentSizedExtVectorType, getSizeExpr, Stmt)
+METHOD(EnumType, getDecl, Decl)
+METHOD(FunctionProtoType, getExceptionSpecDecl, Decl)
+METHOD(FunctionProtoType, getExceptionSpecTemplate, Decl)
+METHOD(FunctionProtoType, getNoexceptExpr, Stmt)
+METHOD(InjectedClassNameType, getDecl, Decl)
+METHOD(InjectedClassNameType, getInjectedTST, Type)
+METHOD(MemberPointerType, getMostRecentCXXRecordDecl, Decl)
+//METHOD(ObjCInterfaceType, getDecl, Decl)
+//METHOD(ObjCObjectPointerType, getInterfaceDecl, Decl)
+//METHOD(ObjCObjectPointerType, getInterfaceType, Type)
+//METHOD(ObjCObjectPointerType, getObjectType, Type)
+//METHOD(ObjCObjectType, getInterface, Decl)
+METHOD(RecordType, getDecl, Decl)
+METHOD(SubstTemplateTypeParmPackType, getReplacedParameter, Type)
+METHOD(SubstTemplateTypeParmType, getReplacedParameter, Type)
+METHOD(TagType, getDecl, Decl)
+METHOD(TemplateTypeParmType, getDecl, Decl)
 METHOD(TypedefType, getDecl, Decl)
-
-
-
+METHOD(Type, dump, void)
+METHOD(Type, getTypeClass, int)
+METHOD(Type, getTypeClassName, char)
+METHOD(TypeOfExprType, getUnderlyingExpr, Stmt)
+METHOD(UnresolvedUsingType, getDecl, Decl)
+METHOD(VariableArrayType, getSizeExpr, Stmt)

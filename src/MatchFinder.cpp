@@ -191,9 +191,9 @@ int AstAnyMethodRunner::listMatcherMethods(const char *expr, MatcherMethodsCallb
        cout << __FUNCTION__ << ": Matcher not found: " << OS.str() << endl;
        return -1;
     }
-    //const char *className = Matcher->getRestrictKind().asStringRef().data();
+    const char *className = Matcher->getRestrictKind().asStringRef().data();
     //asked clang-dev mailist to add method, without it, this will not work
-    const char *className = Matcher->getSupportedKind().asStringRef().data();
+    //const char *className = Matcher->getSupportedKind().asStringRef().data();
     unsigned cid = AstAnyMethodRunner::singleton()->classNameToId(className);
    
     //cout << "cid: " << cid << ", for: " << Matcher->getRestrictKind().asStringRef().data() << endl;
