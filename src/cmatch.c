@@ -31,7 +31,7 @@ static int completeMatchExpression(const char *text, ASTMatchCompletionCallback 
    return 0;
 }
 
-int matchCallback(AstNode node, void *userData) {
+int matchCallback(AstAny node, void *userData) {
 
    const char *selectorPath = (const char *)userData;
    char selbuf[100];
@@ -47,7 +47,7 @@ int matchCallback(AstNode node, void *userData) {
       }
       else 
          selector = selectorPath;
-      node = clang_AstNode_runMethod(node, selector);
+      node = clang_AstAny_runMethod(node, selector);
       if(node.classId == 0)
       {
          printf("%s\n", (const char*)node.status);
@@ -58,8 +58,8 @@ int matchCallback(AstNode node, void *userData) {
    return 1;
 }
 
-int cbListMethodNames(const char *methodName) {
-   printf("%s", methodName);
+int cbListMethodNames(const char *class, const char *methodName) {
+   printf("%s:%s\n", class, methodName);
    return 0;
 }
 
@@ -105,20 +105,20 @@ static unsigned CreateTranslationUnit(CXIndex Idx, const char *file,
    return 1;
 }
 
-int specialCallback(AstNode node, void *userData) {
+int specialCallback(AstAny node, void *userData) {
 
-   AstNode result1, result2, result3;
-   AstNode result = clang_AstNode_runMethod(node, "getDeclName");
-   result = clang_AstNode_runMethod(result, "getAsString");
-   result1 = clang_AstNode_runMethod(result, "toChar");
+   AstAny result1, result2, result3;
+   AstAny result = clang_AstAny_runMethod(node, "getDeclName");
+   result = clang_AstAny_runMethod(result, "getAsString");
+   result1 = clang_AstAny_runMethod(result, "toChar");
 
-   result = clang_AstNode_runMethod(node, "getReturnType");
-   result = clang_AstNode_runMethod(result, "getAsString");
-   result2 = clang_AstNode_runMethod(result, "toChar");
+   result = clang_AstAny_runMethod(node, "getReturnType");
+   result = clang_AstAny_runMethod(result, "getAsString");
+   result2 = clang_AstAny_runMethod(result, "toChar");
 
-   result = clang_AstNode_runMethod(node, "getParent");
-   result = clang_AstNode_runMethod(result, "getNameAsString");
-   result3 = clang_AstNode_runMethod(result, "toChar");
+   result = clang_AstAny_runMethod(node, "getParent");
+   result = clang_AstAny_runMethod(result, "getNameAsString");
+   result3 = clang_AstAny_runMethod(result, "toChar");
 
 
    /* TODO implement dispose clang function and call it on objects that need to be disposed */
@@ -127,32 +127,9 @@ int specialCallback(AstNode node, void *userData) {
    return 1;
 }
 
-static int special(const char *file) {
-#if 0
-   const char *pattern = "methodDecl(parameterCountIs(0), isPublic(), hasParent(recordDecl(hasName(\"Decl\"))))";
-   const char *pattern = 
-      "methodDecl( \
-      returns(pointsTo(hasDeclaration(recordDecl(isDerivedFrom(anyOf( \
-                           recordDecl(hasName(\"Decl\")),  \
-                           recordDecl(hasName(\"Stmt\")),  \
-                           recordDecl(hasName(\"Type\")))))))),\
-      parameterCountIs(0), isPublic(),  \
-      hasParent(recordDecl(isDerivedFrom(anyOf( \
-                     recordDecl(hasName(\"Decl\")), \
-                     recordDecl(hasName(\"Stmt\")), \
-                     recordDecl(hasName(\"Type\")))))) \
-      )"; 
-#endif
-      const char *pattern = 
-      "methodDecl( \
-      parameterCountIs(0), isPublic(),  \
-      hasParent(recordDecl(isDerivedFrom(anyOf( \
-                     recordDecl(hasName(\"Decl\")), \
-                     recordDecl(hasName(\"Stmt\")), \
-                     recordDecl(hasName(\"Type\")))))) \
-      )"; 
+static int special(const char *file,  char *pattern) {
 
-      CXIndex Idx;
+   CXIndex Idx;
    CXTranslationUnit TU;
    Idx = clang_createIndex(1 , 1);
 
@@ -174,7 +151,8 @@ int usage(const char *exename) {
       " -r chain  --run                   run method chain (default is dump)\n"
       " -C expr   --compl-match-expr      complete ast expression\n"
       " -c expr   --compl-match-expr-det  complete ast expression with argument detail\n" 
-      " -l expr   --list-methods          list methods that can be called for a match\n" , 
+      " -l expr   --list-methods          list methods that can be called for a match\n" 
+      " -x retty  --xxx                   run special matcher (internal) \n" , 
       exename);
 
 }
@@ -195,11 +173,12 @@ int main(int argc, char *const*argv) {
    int hasSrcFile = 0;
    int hasPattern = 0;
    int hasSelector = 0;
-   char astFile[200];
-   char srcFile[200];
-   char pattern[200];
-   char selector[200];
+   char astFile[2000];
+   char srcFile[2000];
+   char pattern[2000];
+   char selector[2000];
    int compl = 0;
+   int sp = 0;
    int list = 0;
    int complDet = 0;
    int matching = 0;
@@ -207,7 +186,7 @@ int main(int argc, char *const*argv) {
    int argsConsumed = 1; /* bit hackish: to detect start of -- */
    while(1) {
 
-      int c = getopt_long (argc, argv, "C:c:m:a:r:l:s:",
+      int c = getopt_long (argc, argv, "C:c:m:a:r:l:s:x:",
             long_options, &option_index);
 
       /* Detect the end of the options. */
@@ -254,9 +233,23 @@ int main(int argc, char *const*argv) {
             strcpy(selector, optarg);
             argsConsumed +=2;
             break;
+         case 'x':
+            strcpy(pattern, optarg);
+            sp = 1;
+            break;
       }
    }
    
+   if(sp) {
+   
+      if(!hasAstFile) {
+         usage(argv[0]);
+      }
+
+      return special(astFile, pattern);
+      
+   
+   }
 
    if(hasAstFile && hasSrcFile)
    {
@@ -317,6 +310,7 @@ int main(int argc, char *const*argv) {
 
       if(!hasSelector)
          strcpy(selector, "dump");
+      printf("matching %s \n", pattern);
       return clang_matchAst(TU, (void*)0, pattern, &matchCallback, (void*)selector);
    }
    if(list && hasPattern) {

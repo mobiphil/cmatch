@@ -22,17 +22,17 @@ using namespace clang::ast_matchers;
 
 #define Decl_do(type, object, method) \
    const Decl *res = object->method(); \
-   result.classId = AstNodeMethodRunner::singleton()->classNameToId(res->getDeclKindName() ); \
+   result.classId = AstAnyMethodRunner::singleton()->classNameToId(res->getDeclKindName(), "Decl" ); \
    result.node = res;
 
 #define Stmt_do(type, object, method) \
    const Stmt *res = object->method(); \
-   result.classId = AstNodeMethodRunner::singleton()->classNameToId(res->getStmtClassName() ); \
+   result.classId = AstAnyMethodRunner::singleton()->classNameToId(res->getStmtClassName() ); \
    result.node = res;
 
 #define Type_do(type, object, method) \
    const Type *res = object->method(); \
-   result.classId = AstNodeMethodRunner::singleton()->classNameToId(res->getTypeClassName() ); \
+   result.classId = AstAnyMethodRunner::singleton()->classNameToId(res->getTypeClassName(), "Type" ); \
    result.node = obj;
 
 #define char_do(type, object, method) \
@@ -64,17 +64,17 @@ using namespace clang::ast_matchers;
 
 #define Decl_poddo(type, object, method) \
    const Decl *res = object->method(); \
-   result.classId = AstNodeMethodRunner::singleton()->classNameToId(res->getDeclKindName() ); \
+   result.classId = AstAnyMethodRunner::singleton()->classNameToId(res->getDeclKindName(), "Decl" ); \
    result.node = res;
 
 #define Stmt_poddo(type, object, method) \
    const Stmt *res = object->method(); \
-   result.classId = AstNodeMethodRunner::singleton()->classNameToId(res->getStmtClassName() ); \
+   result.classId = AstAnyMethodRunner::singleton()->classNameToId(res->getStmtClassName() ); \
    result.node = res;
 
 #define Type_poddo(type, object, method) \
    const Type *res = object->method(); \
-   result.classId = AstNodeMethodRunner::singleton()->classNameToId(res->getTypeClassName() ); \
+   result.classId = AstAnyMethodRunner::singleton()->classNameToId(res->getTypeClassName(), "Type" ); \
    result.node = obj;
 
 #define DeclarationName_poddo(type, object, method)   pod_do(type, object, method)
@@ -84,7 +84,7 @@ using namespace clang::ast_matchers;
 #define unsigned_poddo(type, object, method)              pod_do(type, object, method)
 #define int_poddo(type, object, method)              pod_do(type, object, method)
 
-class AstNodeMethodRunner 
+class AstAnyMethodRunner 
 {
    private:
       enum MethodFunctionId  {
@@ -126,11 +126,11 @@ public:
    typedef int MethodId;
 
    private:
-   static AstNodeMethodRunner *singleton_ ;
+   static AstAnyMethodRunner *singleton_ ;
 
    private:
    void initMethodsMaps();
-   AstNodeMethodRunner() ;
+   AstAnyMethodRunner() ;
    typedef int MethodNameId;
    map<string, MethodNameId> methodNameMap;
    vector<string> methodNameVector;
@@ -140,13 +140,20 @@ public:
    map<string, ClassId> classNameMap;
 
    public:
-   AstNode runMethod(AstNode node, const char *methodName);
-   static AstNodeMethodRunner *singleton();
-   ClassId classNameToId(const char *name) {
-      map<string, ClassId>::iterator it = classNameMap.find(name) ; 
+   AstAny runMethod(AstAny node, const char *methodName);
+   static AstAnyMethodRunner *singleton();
+   ClassId classNameToId(const char *name, const char *suffix = 0) {
+      string n = name;
+      if(suffix) n += suffix;
+
+      ClassId ret = cls_none;
+      map<string, ClassId>::iterator it = classNameMap.find(n) ; 
       if( it != classNameMap.end() )
-         return it->second;
-      return cls_none;
+         ret = it->second;
+#ifdef DDDEBUG
+      cout << __FUNCTION__ << ": " << name << ": " << (suffix ? suffix : "(none)" )<< ": " << ret << endl;
+#endif 
+      return ret;
    }
    
    int listMatcherMethods(const char *expr, MatcherMethodsCallback cb);
@@ -165,7 +172,7 @@ public:
    }
 };
 
-int AstNodeMethodRunner::listMatcherMethods(const char *expr, MatcherMethodsCallback cb)
+int AstAnyMethodRunner::listMatcherMethods(const char *expr, MatcherMethodsCallback cb)
 {
    //cout << "inside clang_matchAst" << endl;
    /* TODO ... threaded version? though the match is fast, printing is slow*/
@@ -181,29 +188,33 @@ int AstNodeMethodRunner::listMatcherMethods(const char *expr, MatcherMethodsCall
        std::string ErrStr;
        llvm::raw_string_ostream OS(ErrStr);
        diag.printToStreamFull(OS);
-       cout << OS.str();
+       cout << __FUNCTION__ << ": Matcher not found: " << OS.str() << endl;
        return -1;
     }
-    unsigned cid = AstNodeMethodRunner::singleton()
-       ->classNameToId(Matcher->getSupportedKind().asStringRef().data());
+    //const char *className = Matcher->getRestrictKind().asStringRef().data();
+    //asked clang-dev mailist to add method, without it, this will not work
+    const char *className = Matcher->getSupportedKind().asStringRef().data();
+    unsigned cid = AstAnyMethodRunner::singleton()->classNameToId(className);
    
+    //cout << "cid: " << cid << ", for: " << Matcher->getRestrictKind().asStringRef().data() << endl;
     /* find method name from methodNameMap through methodMap */
-    for(int mid = cid*1000, to = (cid+1)*100; 
+    for(int mid = cid*1000, to = (cid+1)*1000; 
           mid < to; mid++) {
        
-       /*map<AstNodeMethodRunner::MethodId, 
-          AstNodeMethodRunner::MethodFunctionId>::iterator it = methodMap.find( mid ); */
+       /*map<AstAnyMethodRunner::MethodId, 
+          AstAnyMethodRunner::MethodFunctionId>::iterator it = methodMap.find( mid ); */
        auto it = methodMap.find(mid);
        if(it!=methodMap.end()) {
+          /* TODO find the base class really implementing the method*/
           /* now find the method name id as the offset */
-          cb(methodNameVector[mid - cid *1000].c_str());
+          cb(className, methodNameVector[mid - cid *1000].c_str());
 
        }
     }
     return 0;
 }
 
-void AstNodeMethodRunner::initMethodsMaps()
+void AstAnyMethodRunner::initMethodsMaps()
 {
    /* record base class vector */
 #ifdef DDDEBUG
@@ -313,12 +324,14 @@ void AstNodeMethodRunner::initMethodsMaps()
    }
 #endif
 
+#ifdef DDDEBUG
 #define METHOD(kind, member, rettype) cout << "meth: " << kind##_##member << ":" << #kind << ":" << #member << endl;
 #include "DeclClassMethods.inc"
 #include "StmtClassMethods.inc"
 #include "TypeClassMethods.inc"
 #include "PodMethods.inc"
 #undef METHOD
+#endif
 
    for( int id = cls_none; id < cls_last; id++)
    {
@@ -326,23 +339,24 @@ void AstNodeMethodRunner::initMethodsMaps()
    }
 
 }
-AstNodeMethodRunner::AstNodeMethodRunner(){
+AstAnyMethodRunner::AstAnyMethodRunner(){
    initMethodsMaps();
 }
 
-AstNodeMethodRunner *AstNodeMethodRunner::singleton_  = nullptr;
+AstAnyMethodRunner *AstAnyMethodRunner::singleton_  = nullptr;
 
-AstNodeMethodRunner *AstNodeMethodRunner::singleton(){
-   if (AstNodeMethodRunner::singleton_ == 0)
-      singleton_ = new AstNodeMethodRunner();
+AstAnyMethodRunner *AstAnyMethodRunner::singleton(){
+   if (AstAnyMethodRunner::singleton_ == 0)
+      singleton_ = new AstAnyMethodRunner();
    return singleton_;
 }
 
 #include "clang/AST/ASTFwd.h"
 
-AstNode AstNodeMethodRunner::runMethod(AstNode node, const char *methodName){
+AstAny AstAnyMethodRunner::runMethod(AstAny node, const char *methodName){
 
-   AstNode result;
+   //cout << __FUNCTION__ << ": " << methodName << endl;
+   AstAny result;
    result.status = "success";
    result.node = 0;
    result.classId = cls_none;
@@ -390,8 +404,8 @@ AstNode AstNodeMethodRunner::runMethod(AstNode node, const char *methodName){
                }
                break;
 
-            return result;
          }
+         return result;
       }
    }
    map<string, int>::iterator mnit = methodNameMap.find(methodName);
@@ -404,6 +418,7 @@ AstNode AstNodeMethodRunner::runMethod(AstNode node, const char *methodName){
    map<MethodId, MethodFunctionId>::iterator it = 
       methodMap.find(node.classId * 1000 + mnid);
    if (it == methodMap.end()) {
+      cout << "method name not found: " << methodName << endl;
       result.status = "method name not found for given object";
       result.node = 0;
       //printf("function not found for class id: %d, method: %d \n", node.classId, mnid);
@@ -431,7 +446,9 @@ AstNode AstNodeMethodRunner::runMethod(AstNode node, const char *methodName){
                rettype##_poddo(rettype, obj, method);}  \
                break ;
 #include "PodMethods.inc"
-            default: break;
+            default: 
+               cout << "method not found: " << methodName << endl;
+               break;
    }
    
    return result;
@@ -439,9 +456,9 @@ AstNode AstNodeMethodRunner::runMethod(AstNode node, const char *methodName){
 
 extern "C" {
 
-AstNode clang_AstNode_runMethod(AstNode node, const char *methodName)
+AstAny clang_AstAny_runMethod(AstAny node, const char *methodName)
 {
-   return AstNodeMethodRunner::singleton()->runMethod(node, methodName);
+   return AstAnyMethodRunner::singleton()->runMethod(node, methodName);
 }
 
 
@@ -530,14 +547,14 @@ struct CollectBoundNodes : MatchFinder::MatchCallback {
             const Type *t = BI->second.get<Type>();
             className = t->getTypeClassName() ;
          } 
-         unsigned cid = AstNodeMethodRunner::singleton()->classNameToId(className.c_str());
+         unsigned cid = AstAnyMethodRunner::singleton()->classNameToId(className.c_str());
          if( cid == 0) {
-            const AstNode node = {0, 0, "class not found in internal map" };
+            const AstAny node = {0, 0, "class not found in internal map" };
             callback(node, userData);
             return;
          }
             
-         const AstNode node = {cid, BI->second.getMemoizationData(), "success" };
+         const AstAny node = {cid, BI->second.getMemoizationData(), "success" };
          
          callback(node, userData);
       }
@@ -565,7 +582,7 @@ int clang_matchAst(CXTranslationUnit translationUnit, NamedValueMap namedValueMa
        std::string ErrStr;
        llvm::raw_string_ostream OS(ErrStr);
        diag.printToStreamFull(OS);
-       cout << OS.str();
+       cout << __FUNCTION__ << ": Matcher not found: " << OS.str() << endl;
        return -1;
     }
 
@@ -617,7 +634,7 @@ int clang_completeASTMatchExpression(const char *code,
 CINDEX_LINKAGE
 int clang_listMatcherMethods(const char *expr, MatcherMethodsCallback cb)
 {
-   return AstNodeMethodRunner::singleton()->listMatcherMethods(expr, cb);
+   return AstAnyMethodRunner::singleton()->listMatcherMethods(expr, cb);
 
 }
 

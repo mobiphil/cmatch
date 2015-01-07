@@ -64,14 +64,14 @@ typedef struct {
    unsigned classId;
    const void *node;
    const char *status;
-} AstNode;
+} AstAny;
 
 /**
  * \brief equivalent of clang::ASTUnit class 
  */
 typedef void* AstUnit ;
 
-typedef int (*AstMatchCallback)(const AstNode node, void *userData);
+typedef int (*AstMatchCallback)(const AstAny node, void *userData);
 /**
  * \brief matches the expr and named value map against ast
  */
@@ -87,13 +87,13 @@ int clang_matchAst(CXTranslationUnit astUnit, NamedValueMap namedValueMap,
  * getParent.getNameAsString.dump
  */
 CINDEX_LINKAGE
-AstNode clang_AstNode_runMethod(AstNode node, const char *method);
+AstAny clang_AstAny_runMethod(AstAny node, const char *method);
 
 /**
  * \brief function type used as callback for method list
  *
  */
-typedef int (*MatcherMethodsCallback)(const char *methodName);
+typedef int (*MatcherMethodsCallback)(const char *className, const char *methodName);
 
 
 /**

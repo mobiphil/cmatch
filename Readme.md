@@ -1,6 +1,8 @@
 cmatch
 ======
 
+This project is still in early stage, but usable
+
 1. clang libclang extension functions and datatypes for dynamic text based ast matching  
 2. a command line utility to match ast   
 
